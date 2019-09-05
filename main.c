@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <dirent.h>
+#include <grp.h>
 int main( int argc, char *argv[] )  {
 	
 	int var;
@@ -63,6 +64,12 @@ void traverse(const char *name, int indent){
 	struct stat mystat;
 	char buf[512];
 	errno = 0;
+	char *p = getenv("USER");
+	
+	struct group *gid;
+	gid_t g;
+	gid = getgrnam(name);
+	gid->gr_gid;;
 
 	if(!(mydir = opendir(name))){
 		return;}
@@ -70,9 +77,11 @@ void traverse(const char *name, int indent){
 	    {
        		 sprintf(buf, "%s/%s", name, myfile->d_name);
        		 stat(buf, &mystat);
-       		 printf(" %s\n", myfile->d_name);
-		 printf("%zu",mystat.st_size);
- 		 printf("%lu\n", (unsigned long int)uid);
+       		 printf(" %s", myfile->d_name);
+		 printf(" %zu",mystat.st_size);
+		 printf(" %s", p);
+	//	 printf(" %s\n", gid);
+	//inodes 	 printf(" %d\n",mystat.st_ino);
 	    }
  
     closedir(mydir);
