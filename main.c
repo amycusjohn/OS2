@@ -38,10 +38,10 @@ int main( int argc, char *argv[] )  {
 	}
 	
 	if(argv[optind] == NULL){
-		traverse(".", n);
+		printdir(".",0);
 	}
 	for(; optind < argc; optind++){      
-       		traverse(argv[optind], 4);
+       	//	tree(argv[optind], 4);
     	} 
 	if((hflag ==1)) {
 		printf("This is a help message\n");
@@ -58,46 +58,56 @@ int main( int argc, char *argv[] )  {
 }
 
 
-void traverse(const char *name, int indent){
-	DIR *mydir;
-	struct dirent *myfile;
-	struct stat mystat;
-	char buf[512];
-	errno = 0;
-	char *p = getenv("USER");
+void printdir(char *dir, int depth)
+{
+    DIR *dp;
+    struct dirent *entry;
+    struct stat statbuf;
+    int spaces = depth*4;
 	
-	struct group *gid;
-	gid_t g;
-	gid = getgrnam(name);
-	gid->gr_gid;;
+    //Vars for options
+    char *p = getenv("USER");
+    int gid = (atoi(dir));
+    struct stat mystat; 
+    struct group *grp = getgrgid(gid);
+    char buf[512];
+    
 
-	if(!(mydir = opendir(name))){
-		return;}
-	while((myfile = readdir(mydir)) != NULL)
-	    {
-       		 sprintf(buf, "%s/%s", name, myfile->d_name);
-       		 stat(buf, &mystat);
-       		 printf(" %s", myfile->d_name);
-		 printf(" %zu",mystat.st_size);
-		 printf(" %s", p);
-	//	 printf(" %s\n", gid);
-	//inodes 	 printf(" %d\n",mystat.st_ino);
-	    }
- 
-    closedir(mydir);
+
+   /* if(NULL == (grp = getgrgid(mystat.st_gid)))
+	{
+	  perror("getpwuid()");
+	}
+*/
+
+    if((dp = opendir(dir)) == NULL) {
+        fprintf(stderr,"cannot open directory: %s\n", dir);
+        return;
+    }
+    chdir(dir);
+    while((entry = readdir(dp)) != NULL) {
+        lstat(entry->d_name,&statbuf);
+        if(S_ISDIR(statbuf.st_mode)) {
+            /* Found a directory, but ignore . and .. */
+            if(strcmp(".",entry->d_name) == 0 || 
+                strcmp("..",entry->d_name) == 0 )
+                continue;
+	    
+            printf("%*-4s%s/",spaces,"",entry->d_name);
+       	    stat(buf, &mystat);
+     	    printf(" %-8s", entry->d_name);
+	    printf(" %-8zu",mystat.st_size);
+	    printf(" %-8s", p);
+            if(grp){
+	 	 printf(" %-8s", grp->gr_name);
+		}
+            /* Recurse at a new indent level */
+	    printf(" %-8x\n", mystat.st_mode);
+            printdir(entry->d_name,depth+1);
+        }
+        else printf("%*s%s\n",spaces,"",entry->d_name);
+    }
+    chdir("..");
+    closedir(dp);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
