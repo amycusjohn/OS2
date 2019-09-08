@@ -1,2 +1,21 @@
-This is the README for project 1 of OS Fall 2019.
+This is the README for project 1 of OS Fall 2019. I had some issues with this project so I will outline them in this README.
+Also, I used git. To see my commits, you can type git log into the command. 
+I also tried to use GITHUB but there was some strange error that I did not want 
+to waste time trying to fix. 
+First, getopt works fine but my recursive directory call only prints the information
+of the "hidden" files, not of all my files for some reason. I referenced this 
+code for the recursive because every time I tried with other algorithms my 
+program crashed or the file format would be very hard to read. 
+https://johnloomis.org/ece537/notes/Files/Examples/printdir.html
+That being said, my file format is not correct as there are a bunch of 
+letters/number combos that I do not know where they came from and I cannot get rid of them. 
+Next, -h,-s, -p, -u, -g, -d, -l options all work. My print function already prints file type. 
+The number of linkes SHOULD work but for some reason I keep geting strange numbers.
+For information on how to print permissions, I used this website: http://codewiki.wikidot.com/c:system-calls:stat
+
+I have never used stat before so it took me a while to figure out what parameters 
+were accepted, what functions were included, formatting, etc. 
+
+As mentioned in class, honesty is the best policy. I do not want you too come 
+across any unexpected seg faults or issues like that. 
  
