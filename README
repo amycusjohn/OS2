@@ -2,6 +2,7 @@ This is the README for project 1 of OS Fall 2019. I had some issues with this pr
 Also, I used git. To see my commits, you can type git log into the command. 
 I also tried to use GITHUB but there was some strange error that I did not want 
 to waste time trying to fix. 
+I also made the directory test inside seidel.1 to test. 
 First, getopt works fine but my recursive directory call only prints the information
 of the "hidden" files, not of all my files for some reason. I referenced this 
 code for the recursive because every time I tried with other algorithms my 
