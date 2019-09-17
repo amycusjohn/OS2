@@ -1,6 +1,6 @@
 //Amy Seidel
 //CS4760 - OS 
-//Project 1 
+//Project 2
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -11,155 +11,158 @@
 #include <errno.h>
 #include <dirent.h>
 #include <grp.h>
-void printdir(char *dir, int indent);
+#include <stdio.h>
+#include <stdbool.h>
+bool isSubsetSum(int set[], int n, int sum);
 
 //making all of the flags global so they can be changed in main and used in the function
-int hflag,tflag, gflag, pflag, iflag, uflag, sflag, Lflag, dflag,  Iflag = 0;
-int n = 4;
+int hflag, iflag, oflag, tflag = 0;
 
 int main( int argc, char *argv[] )  {
 	
-	//variables 
+	//variables
 	int var;
+	char * iVal;
+	char * oVal;
+	char *tVal;
 
 	//while loop to execute getopt
-	while ((var = getopt(argc, argv, "hILldgipstu")) != -1) { 
+	while ((var = getopt(argc, argv, "hiot")) != -1) {
 		switch(var) {
 		  case 'h':
 		   	hflag = 1;
 		   	break;
-		  case 'd':
-			dflag = 1;
-			break;
-		  case 'I':
-			Iflag = 1;
-			break; 
-		  case 'L':
-			Lflag = 1;
-			break;
-		  case 't':
-			tflag = 1;
-			break;
-		  case 'p': 
-			pflag = 1;
-			break;
 		  case 'i':
 			iflag = 1;
+			iVal = optarg;
 			break;
-		  case 'u':
-			uflag = 1;
-			break;
-		  case 'g':
-			gflag = 1;
-			break;
-		  case 's':
-			sflag = 1;
-			break;
-		  case 'l':
-			uflag = 1;
+		  case 'o':
+			oflag = 1;
+			oVal = optarg;
+			break; 
+		  case 't':
 			tflag = 1;
-			iflag = 1;
-			pflag = 1;
-			gflag = 1;
-			sflag = 1;
+			tVal = optarg;
+			break;
 		   default:
 			break;
 		}
 	}
-	if((hflag ==1)) {
-		printf("HELP: Enter ./dt -options directory name\n");
+	//getting arguments supplied by user
+    if (optind < argc)
+    {
+               iVal = argv[optind];
+          //     printf("ival %s ", iVal);
+               oVal = argv[++optind];
+          //    printf("oval %s ", oVal);
+               tVal = argv[1+optind];
+              // printf("tval %s ", tVal);
+        ++optind;
+    }
+
+    //hFlag checking
+	if((hflag == 1)) {
+		printf("Legal Inputs: -h, -i inputfilename, -o outputfilename, -t time."
+         " The default is input.dat output.dat 10\n");
 		exit(0);
 	}
-	if(argv[optind] != NULL){
-		printdir(argv[optind],0);
-	
-	}
-	//prints current directory if there is no argument provided
+
+    //iFlag checking
+	if(iflag == 1){
+        FILE *fp = fopen(iVal, "w");
+        if(fp == NULL)
+        {
+            printf("Error!");
+            exit(1);
+        }
+    }
+	//Default case
 	else{
-		printdir(".", 0);
-	}
-    	 
+        FILE *fp = fopen("input.dat", "w");
+        if(fp == NULL)
+        {
+            printf("Error!");
+            exit(1);
+        }
+    }
+    //iFlag checking, opening the file
+    if(iflag == 1){
+        FILE *fpIn = fopen(iVal, "r");
+        if(fpIn == NULL)
+        {
+            fprintf(stderr, "Cannot read from input.txt");
+            exit(1);
+        }
+    }
+    //Default case
+    else{
+        FILE *fpIn = fopen("input.dat", "r");
+        if(fpIn == NULL)
+        {
+            fprintf(stderr, "Cannot read from input.txt");
+            exit(1);
+        }
+    }
+
+    //iFlag checking, opening the file
+    if(iflag == 1){
+        FILE *fpOut = fopen(oVal, "w");
+        if(fpOut == NULL)
+        {
+            fprintf(stderr, "Cannot read from file");
+            exit(1);
+        }
+    }
+        //Default case
+    else{
+        FILE *fpOut = fopen("output.dat", "w");
+        if(fpOut == NULL)
+        {
+            fprintf(stderr, "Cannot read from output.dat");
+            exit(1);
+        }
+    }
+
+
+
+
+
+
+    int set[] = {3, 34, 4, 12, 5, 2};
+    int sum = 9;
+    int n = sizeof(set)/sizeof(set[0]);
+    if (isSubsetSum(set, n, sum) == 1)
+        printf(" ");
+    else
+       printf(" No subset with given sum");
+    return 0;
+
 }
 /*****************************************
- * FUNCTION TO PRINT DIRECTORY AND OPTIONS
+ * FUNCTION TO CHECK SUBSET
  *****************************************/
-
-void printdir(char *dir, int indent)
+bool isSubsetSum(int set[], int n, int sum)
 {
-    //variables for declaring directory and stat
-    DIR *d;
-    struct dirent *entry;
-    struct stat statbuf;
-    int spaces = indent+n;
-	
-    //Vars for options
-    char *p = getenv("USER");
-    int gid = (atoi(dir)); 
-    struct group *grp = getgrgid(gid);
-    char buf[512];
-   
-   //Error checking if it is a real directory name or not
-    if((d = opendir(dir)) == NULL) {
-	fprintf(stderr, "ERRO %s: ", dir);
-	perror(""); 
-        return;
+    int i;
+    int size = 8;
+    // Base Cases
+    if (sum == 0)
+        return 1;
+
+    if (n == 0 && sum != 0) {
+
+        return 1;
     }
 
-    chdir(dir);
-    while((entry = readdir(d)) != NULL) {
-        lstat(entry->d_name,&statbuf);
-        if(S_ISDIR(statbuf.st_mode))
-	 {
-            // ignoring "." and ".." directories
-            if(strcmp(".",entry->d_name) == 0 || 
-                strcmp("..",entry->d_name) == 0 )
-                continue;
-	    
-	//Printing information
-            printf("%s",entry->d_name);
-     	
-	    //print permissions
-	    if(pflag == 1){
-		printf("\t");
-		printf( (S_ISDIR(statbuf.st_mode)) ? "d" : "-");	  	
-		printf( (statbuf.st_mode & S_IRUSR) ? "r" : "-");
-		printf( (statbuf.st_mode & S_IWUSR) ? "w" : "-");
-		printf( (statbuf.st_mode & S_IXUSR) ? "x" : "-");
-		printf( (statbuf.st_mode & S_IRGRP) ? "r" : "-");
-		printf( (statbuf.st_mode & S_IWGRP) ? "w" : "-");
-		printf( (statbuf.st_mode & S_IXGRP) ? "x" : "-");
-		printf( (statbuf.st_mode & S_IROTH) ? "r" : "-");
-		printf( (statbuf.st_mode & S_IWOTH) ? "w" : "-");
-		printf( (statbuf.st_mode & S_IXOTH) ? "x" : "-");
-		
-	    }
-            //print number of links
-            if(iflag == 1){
-	  	  printf("\t%d", statbuf.st_ino);
-	    }
-      	    //print UID
-	    if(uflag == 1){ 
-	   	 printf("\t%s", p);
-	    }	
-           //print group id
-           if(gflag == 1){ 
-		   if(grp){
-		 	 printf("\t%s", grp->gr_name);
-			}
-	   }
-	   if(sflag == 1){		
-	     printf("\t%d",statbuf.st_size);
-	   }
+    // If last element is greater than sum, then ignore it
+    if (set[n-1] > sum)
+        return isSubsetSum(set, n-1, sum);
 
-	   //printing time
-	   if(dflag == 1){
-	    printf("\t%s\n", ctime(&statbuf.st_mtime));
-	  } 
-	   printdir(entry->d_name, indent+n); 
-        }
-        else printf("%*s%s\n ",spaces,"",entry->d_name);
-    }
-    chdir("..");
-    closedir(d);
+
+    /* else, check if sum can be obtained by any of the following
+       (a) including the last element
+       (b) excluding the last element   */
+    return isSubsetSum(set, n-1, sum) ||
+           isSubsetSum(set, n-1, sum-set[n-1]);
+
 }
-
