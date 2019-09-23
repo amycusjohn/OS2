@@ -1,6 +1,6 @@
 dt: main.o
-	gcc main.o -o dt
+	gcc main.o -o logParse
 main.o: main.c
 	gcc -c main.c
 clean:
-	rm *.o dt
+	rm *.o logParse
