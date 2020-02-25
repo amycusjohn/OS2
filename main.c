@@ -22,7 +22,7 @@ void findSubset(int set[], int size, int sum, time_t time, FILE *out);
 void subsetSum(int set[], int subSet[], int n, int subSize, int total, int nodeCount ,int sum, time_t time, FILE *out);
 
 //making all of the flags global so they can be changed in main and used in the function
-int hflag, iflag, oflag, tflag = 0;
+int hflag, nflag, sflag, bflag, iflag, oflag;
 
 int main( int argc, char *argv[] )  {
 
@@ -33,9 +33,11 @@ int main( int argc, char *argv[] )  {
 
 	//variables
 	int var;
+	char * nVal;
+	char * sVal;
 	char * iVal;
 	char * oVal;
-	char *tVal;
+	char * bVal;
 
 
 	//variables for file
@@ -44,7 +46,7 @@ int main( int argc, char *argv[] )  {
     static char buf[200];
 
 	//while loop to execute getopt
-	while ((var = getopt(argc, argv, "hiot")) != -1) {
+	while ((var = getopt(argc, argv, "hnsbio")) != -1) {
 		switch(var) {
 		  case 'h':
 		   	hflag = 1;
@@ -57,11 +59,19 @@ int main( int argc, char *argv[] )  {
 			oflag = 1;
 			oVal = optarg;
 			break; 
-		  case 't':
-			tflag = 1;
-			tVal = optarg;
+		  case 'n':
+			nflag = 1;
+			nVal = optarg;
 			break;
-		   default:
+          case 's':
+            sflag = 1;
+            sVal = optarg;
+            break;
+          case 'b':
+              bflag = 1;
+              bVal = optarg;
+              break;
+            default:
 			break;
 		}
 	}
@@ -71,59 +81,26 @@ int main( int argc, char *argv[] )  {
     {
                iVal = argv[optind];
                oVal = argv[++optind];
-               tVal = argv[optind];
-               defaultTime = atoi(tVal);
+           //    tVal = argv[optind];
+           //    defaultTime = atoi(tVal);
                ++optind;
     }
 
 
     //hFlag checking
-	if((hflag == 1)) {
-		printf("Legal Inputs: -h, -i inputfilename, -o outputfilename, -t time.\n"
-         " The default is input.dat output.dat 10\n"
-         "If you run with -i you need to use -t as well, vice versa\n");
-		exit(0);
-	}
-
-
-    //iFlag checking, opening the file
-    if(iflag == 1){
-        FILE *fpIn = fopen(iVal, "r");
-        if(fpIn == NULL)
-        {
-            fprintf(stderr, "Cannot read from file");
-            exit(1);
-        }
-        else{
-            while(fgets(buf, sizeof(buf), fpIn) ){
-                if(lineNum == 0) {
-                    numProcess = atoi(buf);
-                    lineNum++;
-                }
-            }
-        }
+    if((hflag == 1)) {
+        printf("HELP: Enter oss -n x -s x -B x -i I -o filename.log \n");
+        printf("-n Indicate the maximum total of child processes oss will ever create. (Default 4)\n");
+        printf("-s Indicate the number of children allowed to exist in the system at the same time. (Default 2)\n");
+        printf("-b Start of the sequence of numbers to be tested for primality\n");
+        printf("-i Increment between numbers that we test\n");
+        printf("-o filename for output file\n");
+        exit(0);
     }
 
-    //Default case
-    else{
-        char * inFile = "input.dat";
-        strcpy(iVal, inFile);
-        FILE *fpIn = fopen(iVal, "r");
-        if(fpIn == NULL)
-        {
-            fprintf(stderr, "Cannot read from input.txt");
-            exit(1);
-        }
-       else{
-           while(fgets(buf, sizeof(buf), fpIn )!= NULL){
-                if(lineNum == 0) {
-                    // numProcess gets the first number of the file - how many processes need to be forked
-                    numProcess = atoi(buf);
-                    lineNum++;
-                }
-           }
-       }
-    }
+
+
+
 
     //oFlag checking, opening the file
     if(oflag == 1){
@@ -244,7 +221,7 @@ int main( int argc, char *argv[] )  {
             //printing pid, = subset/no subset found
             fprintf(fpOut, "%d: ", getpid());
             fprintf(fpOut, "%d = ", num[0]);
-            findSubset(sum, sizeof(sum)/sizeof(sum[0]), num[0], now, fpOut);
+          //  findSubset(sum, sizeof(sum)/sizeof(sum[0]), num[0], now, fpOut);
             exit(0);
         }
 
@@ -269,44 +246,46 @@ int main( int argc, char *argv[] )  {
  * FUNCTION TO CHECK SUBSET
  * taken from https://www.tutorialspoint.com/Subset-Sum-Problem
  *****************************************/
+/*
 void displaySubset(int subSet[], int size, time_t now, FILE *out) {
-    int i;
-    time_t seconds;
-    seconds = time(NULL);
-    if( seconds - now == 1) {
-        printf("%d: ", getpid());
-        perror("logParse: Processesing took longer than 1 second\n");
-        exit(0);
-    }
-        for(i = 0; i < size; i++) {
-            fprintf(out, "%d  ", subSet[i]);
-        }
-        fprintf(out, "\n");
+   int i;
+   time_t seconds;
+   seconds = time(NULL);
+   if( seconds - now == 1) {
+       printf("%d: ", getpid());
+       perror("logParse: Processesing took longer than 1 second\n");
+       exit(0);
+   }
+       for(i = 0; i < size; i++) {
+           fprintf(out, "%d  ", subSet[i]);
+       }
+       fprintf(out, "\n");
 
 }
 
 void subsetSum(int set[], int subSet[], int n, int subSize, int total, int nodeCount ,int sum, time_t time, FILE *out) {
-    int i;
-    int count = 0;
+   int i;
+   int count = 0;
 
-    if( total == sum) {
-        displaySubset(subSet, subSize, time, out);     //print the subset
-        return;
-    }
-    else {
-        for( i = nodeCount; i < n; i++ ) {     //find node along breadth
-            subSet[subSize] = set[i];
-            subsetSum(set,subSet,n,subSize+1,total+set[i],i+1,sum, time, out);     //do for next node in depth
-            count++;
-        }
-    }
-    if((count == subSize) && (subSet[1] != NULL)){
-            fprintf(out,"No subset found\n");
-    }
+   if( total == sum) {
+       displaySubset(subSet, subSize, time, out);     //print the subset
+       return;
+   }
+   else {
+       for( i = nodeCount; i < n; i++ ) {     //find node along breadth
+           subSet[subSize] = set[i];
+           subsetSum(set,subSet,n,subSize+1,total+set[i],i+1,sum, time, out);     //do for next node in depth
+           count++;
+       }
+   }
+   if((count == subSize) && (subSet[1] != NULL)){
+           fprintf(out,"No subset found\n");
+   }
 }
 
- void findSubset(int set[], int size, int sum, time_t time, FILE *out) {
-    int *subSet[size];     //create subset array to pass parameter of subsetSum
+void findSubset(int set[], int size, int sum, time_t time, FILE *out) {
+   int *subSet[size];     //create subset array to pass parameter of subsetSum
 
-    subsetSum(set, subSet, size, 0, 0, 0, sum, time, out);
+   subsetSum(set, subSet, size, 0, 0, 0, sum, time, out);
 }
+*/
