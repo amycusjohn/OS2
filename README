@@ -1,13 +1,4 @@
-This is the README for project 2 of OS Fall 2019. I finally got my github to work so you can find that here: https://github.com/amycusjohn/OS2
+This is the README for project 2 of OS https://github.com/amycusjohn/OS2
 
-I had a couple warnings that I couldn't get rid of but the program still works
-This project is late because I had some personal issues this week. My mom became more ill after her treatment and
-I had to help around the house. On Thursday, she had an accident so I was unable to finish the project.
-If it is possible, can I have partial credit for this project? It seems like she is doing better so I will to not let
-it interfere with my classwork from now on.
-
-./logParse - i inputfile -o outputfile -t time to run
-for some reason, it doesn't work if you only use -i or -t by themselves, they must be together
-however, default does work
-type make to make the program
-type make clean to make it clean
+Program runs by invoking ./oss -h or ./oss -n 5 -s 2 -b 101 -i 4 -o output.log or something like that. An output
+file will be made. It checks the primality

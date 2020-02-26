@@ -1,6 +1,7 @@
 //Amy Seidel
 //CS4760 - OS
 //Project 2
+#include <signal.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -17,35 +18,62 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
+#include <math.h>
 
-void child();
-void parent();
-
-int writing();
-int reading();
-int fill_buffer(char * bufptr, int size);
-
-#define SHMKEY	859047             /* Parent and child agree on common key.*/
-#define BUFF_SZ	sizeof ( int )
+#define _XOPEN_SOURCE 700
 #define BUF_SIZE 1024
-#define SHM_KEY 0x1234
 
+int limit = 0;
+
+//functions from the robbins robbins text: myhandler() setupinterrupt() setuptimer()
+static void myhandler(int s) {
+    int errsave;
+    errsave = errno;
+    exit(0);
+}
+//https://www.qnx.com/developers/docs/6.4.1/neutrino/prog/inthandler.html
+static int setupinterrupt(void) {
+    struct sigaction act;
+    act.sa_handler = myhandler;
+    act.sa_flags = 0;
+    return (sigemptyset(&act.sa_mask) || sigaction(SIGPROF, &act, NULL));
+}
+
+//https://pubs.opengroup.org/onlinepubs/7908799/xsh/systime.h.html
+static int setuptimer(int n) {
+    struct itimerval value;
+    value.it_interval.tv_sec = n;
+    value.it_interval.tv_usec = 0;
+    value.it_value = value.it_interval;
+    return (setitimer(ITIMER_PROF, &value, NULL));
+}
+
+//https://www.tutorialspoint.com/c_standard_library/c_function_time.htm
+int getSeconds(){
+    time_t now;
+    time(&now);
+    struct tm *local = localtime(&now);
+    int seconds = local->tm_sec;
+    return seconds;
+}
+//class notes
 struct shmseg {
     int cnt;
     int complete;
     char buf[BUF_SIZE];
 };
 
+bool primeChecker(int n, int b, int i, int cSecond, FILE *fp);
 //making all of the flags global so they can be changed in main and used in the function
 int hflag, nflag, sflag, bflag, iflag, oflag;
 
 int main( int argc, char *argv[] ) {
 
     //declaring variables for time
-    time_t parentTime;
-    parentTime = time(NULL);
-    int defaultTime = 10;
-
+    time_t pTime;
+    pTime = time(NULL);
+    int sec = 2;
     //variables
     int var;
     char *nVal;
@@ -56,7 +84,7 @@ int main( int argc, char *argv[] ) {
 
 
     //variables for file
-    int numProcess;
+   // int numProcess;
     int lineNum = 0;
     static char buf[200];
 
@@ -90,8 +118,6 @@ int main( int argc, char *argv[] ) {
                 perror("You chose an invalid option\n");
                 exit(-1);
             default:
-                //    nVal = 4;
-                //   sVal = 2;
                 break;
         }
     }
@@ -133,14 +159,15 @@ int main( int argc, char *argv[] ) {
             exit(1);
         }
         else {
-            fprintf(fpOut, "This is being written in the file. This is an int variable: %d", numProcess);
-            printf("Filename: %s \n", oVal);
+           // fprintf(fpOut, "This is being written in the file\n");
+           // printf("Filename: %s \n", oVal);
         }
     }
     else {
         perror("You need a -o value\n");
         exit(-1);
     }
+    FILE *fpOut = fopen(oVal, "w");
 
     //nFlag checking,
     if (nflag == 1) {
@@ -178,302 +205,105 @@ int main( int argc, char *argv[] ) {
         exit(-1);
     }
 
-    //SHARED MEMORY
-    switch (fork())
-    {
-        case -1:
-            perror("not good\n");
-            return ( 1 );
+    //BEGIN PROCESSING PART
 
-        case 0:
-            child();
-            break;
+    //Setting up the timer and interupts
+    setupinterrupt();
+    setuptimer(sec);
 
-        default:
-            parent();
-            break;
-    }
+    //variable declarations
+    int j;
+    int wstatus;
+    pid_t childPid, w;
 
+    for(j = 0; j < nt; j++ ) {
+        childPid = fork();
+        if (childPid == 0) {
 
+            //checking the time
+            int cSecond = getSeconds();
+            fprintf(fpOut, "Launched at %d ", cSecond);
+            bool flag = primeChecker( nt, bt, it, cSecond, fpOut);
+            char error[100];
 
-
-    // writing();
-   // reading();
-
-}
-
-void parent()
-{
-    // Get shared memory segment identifier
-
-    int shmid = shmget ( SHMKEY, BUFF_SZ, 0777 | IPC_CREAT );
-    if ( shmid == -1 )
-    {
-       // cerr << "Parent: ... Error in shmget ..." << endl;
-        exit (1);
-    }
-
-    // Get the pointer to shared block
-
-    char * paddr = ( char * )( shmat ( shmid, 0, 0 ) );
-    int * pint = ( int * )( paddr );
-int i;
-    for ( i = 0; i < 10; i++ )
-    {
-        sleep ( 2 );
-
-        *pint = 10 *i ;             /* Write into the shared area. */
-
-        printf("Child: Read Val. =  %s \n", pint) ;
-    }
-}
-
-void child()
-{
-    int i;
-    sleep ( 5 );
-    int shmid = shmget ( SHMKEY, BUFF_SZ, 0777 );
-
-    if ( shmid == -1 )
-    {
-      //  cerr << "Child: ... Error in shmget ..." << endl;
-        exit ( 1 );
-    }
-
-    int * cint = ( int * )( shmat ( shmid, 0, 0 ) );
-
-    for (  i = 0; i < 10; i++ )
-    {
-        sleep ( 1 );
-        printf("Child: Read Val. =  %s \n", cint) ;
-    }
-}
-
-
-
-
-
-
-/*
-int reading(){
-    //HMMMMMMMM
-
-    int shmid;
-    struct shmseg *shmp;
-    shmid = shmget(SHM_KEY, sizeof(struct shmseg), 0644|IPC_CREAT);
-    if (shmid == -1) {
-        perror("Shared memory");
-        return 1;
-    }
-
-    // Attach to the segment to get a pointer to it.
-    shmp = shmat(shmid, NULL, 0);
-    if (shmp == (void *) -1) {
-        perror("Shared memory attach");
-        return 1;
-    }
-
-    /* Transfer blocks of data from shared memory to stdout
-    while (shmp->complete != 1) {
-        printf("segment contains : \n\"%s\"\n", shmp->buf);
-        if (shmp->cnt == -1) {
-            perror("read");
-            return 1;
-        }
-        printf("Reading Process: Shared Memory: Read %d bytes\n", shmp->cnt);
-        sleep(3);
-    }
-    printf("Reading Process: Reading Done, Detaching Shared Memory\n");
-    if (shmdt(shmp) == -1) {
-        perror("shmdt");
-        return 1;
-    }
-    printf("Reading Process: Complete\n");
-    return 0;
-}
-
-
-int writing (){
-    int shmid, numtimes;
-    struct shmseg *shmp;
-    char *bufptr;
-    int spaceavailable;
-    shmid = shmget(SHM_KEY, sizeof(struct shmseg), 0644|IPC_CREAT);
-    if (shmid == -1) {
-        perror("Shared memory");
-        return 1;
-    }
-
-    // Attach to the segment to get a pointer to it.
-    shmp = shmat(shmid, NULL, 0);
-    if (shmp == (void *) -1) {
-        perror("Shared memory attach");
-        return 1;
-    }
-
-    /* Transfer blocks of data from buffer to shared memory
-    bufptr = shmp->buf;
-    spaceavailable = BUF_SIZE;
-    for (numtimes = 0; numtimes < 5; numtimes++) {
-        shmp->cnt = fill_buffer(bufptr, spaceavailable);
-        shmp->complete = 0;
-        printf("Writing Process: Shared Memory Write: Wrote %d bytes\n", shmp->cnt);
-        bufptr = shmp->buf;
-        spaceavailable = BUF_SIZE;
-        sleep(3);
-    }
-    printf("Writing Process: Wrote %d times\n", numtimes);
-    shmp->complete = 1;
-
-    if (shmdt(shmp) == -1) {
-        perror("shmdt");
-        return 1;
-    }
-
-    if (shmctl(shmid, IPC_RMID, 0) == -1) {
-        perror("shmctl");
-        return 1;
-    }
-    printf("Writing Process: Complete\n");
-    return 0;
-}
-
-int fill_buffer(char * bufptr, int size) {
-    static char ch = 'A';
-    int filled_count;
-
-    //printf("size is %d\n", size);
-    memset(bufptr, ch, size - 1);
-    bufptr[size-1] = '\0';
-    if (ch > 122)
-        ch = 65;
-    if ( (ch >= 65) && (ch <= 122) ) {
-        if ( (ch >= 91) && (ch <= 96) ) {
-            ch = 65;
-        }
-    }
-    filled_count = strlen(bufptr);
-
-    //printf("buffer count is: %d\n", filled_count);
-    //printf("buffer filled is:%s\n", bufptr);
-    ch++;
-    return filled_count;
-}
-
-
-
-
-*/
-
-
-
-/*
-int length = 0;
-int num = o;
-
-        //finished with the array business so time to start working with processes
-        //variables for wait status and forking
-        //https://pubs.opengroup.org/onlinepubs/9699919799/functions/waitpid.html
-        //https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.2.0/com.ibm.zos.v2r2.bpxbd00/rtwaip.htm
-        int wstatus;
-        pid_t pid = fork(), waitStat;
-
-        if(pid == -1) {
-            perror("logParse: Child process failed\n");
-            exit(0);
-        }
-
-            //making the parent wait
-        else if(pid > 0) {
-            do {
-                waitStat = waitpid(pid, &wstatus, WUNTRACED | WCONTINUED);
-                if (waitStat == -1) break;
-            } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
-
-        }
-            //working on the child process
-            //https://stackoverflow.com/questions/35020540/how-and-why-sizeofa-sizeofa0-in-c-is-used-to-calculate-the-number-of-eleme
-        else{
-            int sum[length-1];
-            int x;
-            int total = num[0];
-
-            for (x = 1 ; x <sizeof(num)/sizeof(num[0])+1; x++) {
-                sum[x-1] = num[x];
+        //if it is a prime
+        if(flag == true) {
+                char temp[10] = {0};
+                char sPid[1000] = {0};
+                sprintf(sPid, "%d", getpid());
+                strcat(sPid, ": ");
+                fputs(sPid, fpOut);
+                cSecond = getSeconds();
+                fprintf(fpOut, "Current time: %d  \n", cSecond);
             }
 
-            //setting timer for the child process
-            time_t now;
-            now = time(NULL);
-
-            //printing pid, = subset/no subset found
-            fprintf(fpOut, "%d: ", getpid());
-            fprintf(fpOut, "%d = ", num[0]);
-            //  findSubset(sum, sizeof(sum)/sizeof(sum[0]), num[0], now, fpOut);
-            exit(0);
+        //process terminated without checking primality
+        if (limit == 1) {
+            char temp[20];
+            sprintf(temp, "%d", getpid());
+            strcpy(error, temp);
+            strcat(error, ": Process terminated without checking\n");
+            fputs(error, fpOut);
+            limit = 0;
         }
 
     }
 
-    //timer for parent process
-    time_t currentTime;
-    currentTime = time(NULL);
-
-    if(parentTime - currentTime == defaultTime){
-        printf("%d: ", getpid());
-        perror("logParse: Processesing took too long\n");
-        exit(1);
+    //wait for child to end http://man7.org/linux/man-pages/man2/wait.2.html
+    else{
+        do {
+            w = waitpid(childPid, &wstatus, WUNTRACED | WCONTINUED);
+            if (w == -1) {
+                break;
+            }
+        } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
     }
-    printf( "LogParse tried to find the sums. Please check your output file.\n");
-}
+        int cSecond = getSeconds();
+        char temp[50];
+        sprintf(temp, "%d: ", getpid());
+        fputs(temp, fpOut);
+        fprintf(fpOut, "Terminated at: %d  \n", cSecond);
+    }
+fclose(fpOut);
 
-
-*/
-
-/*****************************************
- * FUNCTION TO CHECK SUBSET
- * taken from https://www.tutorialspoint.com/Subset-Sum-Problem
- *****************************************/
-/*
-void displaySubset(int subSet[], int size, time_t now, FILE *out) {
-   int i;
-   time_t seconds;
-   seconds = time(NULL);
-   if( seconds - now == 1) {
-       printf("%d: ", getpid());
-       perror("logParse: Processesing took longer than 1 second\n");
-       exit(0);
-   }
-       for(i = 0; i < size; i++) {
-           fprintf(out, "%d  ", subSet[i]);
-       }
-       fprintf(out, "\n");
+    exit(0);
 
 }
 
-void subsetSum(int set[], int subSet[], int n, int subSize, int total, int nodeCount ,int sum, time_t time, FILE *out) {
-   int i;
-   int count = 0;
+bool primeChecker(int n, int b, int i, int cSecond, FILE *fp)  //function to evaluate the subset sum
+{
+    int x, j;
+    int flag = 1;
 
-   if( total == sum) {
-       displaySubset(subSet, subSize, time, out);     //print the subset
-       return;
-   }
-   else {
-       for( i = nodeCount; i < n; i++ ) {     //find node along breadth
-           subSet[subSize] = set[i];
-           subsetSum(set,subSet,n,subSize+1,total+set[i],i+1,sum, time, out);     //do for next node in depth
-           count++;
-       }
-   }
-   if((count == subSize) && (subSet[1] != NULL)){
-           fprintf(out,"No subset found\n");
-   }
+    //check if more than 2 seconds has passed
+    if(getSeconds() - cSecond == 2){
+        limit = 2;
+        return false;
+    }
+
+    //checking if it is a prime
+double root = sqrt(10);
+    for(x = 0; x <=4; x++){
+        for(j = 2; j <= root; j++){
+            if(b % 2 == 1){
+               int temp;
+                temp = b;
+                fprintf(fp, "%d is prime  \n", b);
+                b = temp+i;
+            }
+            else{
+                int temp;
+                temp = b;
+                fprintf(fp, "%d is not prime  \n", b);
+                b = temp+i;
+            }
+
+        }
+    }
+return true;
+
 }
 
-void findSubset(int set[], int size, int sum, time_t time, FILE *out) {
-   int *subSet[size];     //create subset array to pass parameter of subsetSum
 
-   subsetSum(set, subSet, size, 0, 0, 0, sum, time, out);
-}
-*/
+
+
